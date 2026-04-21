@@ -1,167 +1,205 @@
 # Mezatag Stats API
 
-Public read-only API for Mezatag Pokemon details, move metadata, and per-version availability.
+Public read-only API for Mezatag Pokemon details, move metadata, and version availability.
 
-This repo contains the public data files and API route handlers for a read-only Mezatag stats API. It does not depend on Firebase, auth, or any Mezastar Hub frontend code.
-
-## Current Coverage
-
-The API already exposes all roster buckets, but the detailed stat curation is still in progress for some versions.
-
-- `stardust_v1`: curated
-- `stardust_v2`: curated
-- `Special`: curated
-- `stardust_v3`: not fully curated yet
-- `stardust_v4`: not fully curated yet
-- `galaxy_v1`: not fully curated yet
-
-If you need the full catalog regardless of completion state, call `GET /api/pokemon-stats?includeEmpty=true` and inspect each record's `statsStatus`.
-
-## How To Access The API
-
-This repo exposes two API route files:
-
-- `api/pokemon-stats/index.js`
-- `api/pokemon-stats/[slug].js`
-
-That means the API path is always based on the host where this repo is running:
+**Base URL**
 
 ```txt
-https://your-domain.com/api/pokemon-stats
-https://your-domain.com/api/pokemon-stats/:slug
+https://api.mezastarhub.site/api/pokemon-stats
 ```
 
-Examples:
+## Overview
+
+This API exposes public Mezatag roster and stat data in a simple JSON format.
+
+- Read-only access
+- No API key required
+- Version-aware responses
+- Detail lookup by slug
+- Completion tracking with `statsStatus`
+
+## Coverage
+
+Current curation status by version:
+
+| Version | Status |
+| --- | --- |
+| `stardust_v1` | Curated |
+| `stardust_v2` | Curated |
+| `Special` | Curated |
+| `stardust_v3` | Not fully curated yet |
+| `stardust_v4` | Not fully curated yet |
+| `galaxy_v1` | Not fully curated yet |
+
+If you need the full catalog, including unfinished entries, use `includeEmpty=true`.
+
+## Quick Start
+
+### Get all published entries
 
 ```txt
-https://your-domain.com/api/pokemon-stats
-https://your-domain.com/api/pokemon-stats?includeEmpty=true
-https://your-domain.com/api/pokemon-stats?groupByVersion=true
-https://your-domain.com/api/pokemon-stats/mewtwo-1-1-001
-https://your-domain.com/api/pokemon-stats/mewtwo-1-1-001?allowEmpty=true
+GET https://api.mezastarhub.site/api/pokemon-stats
 ```
 
-If you publish this repo on a hosting platform that supports file-based serverless routes, users will access the API through that host plus `/api/pokemon-stats`.
+### Get the full catalog, including incomplete entries
 
-## Routes
+```txt
+GET https://api.mezastarhub.site/api/pokemon-stats?includeEmpty=true
+```
+
+### Group entries by version
+
+```txt
+GET https://api.mezastarhub.site/api/pokemon-stats?groupByVersion=true
+```
+
+### Get one Pokemon by slug
+
+```txt
+GET https://api.mezastarhub.site/api/pokemon-stats/mewtwo-1-1-001
+```
+
+### Get one entry even if it is incomplete
+
+```txt
+GET https://api.mezastarhub.site/api/pokemon-stats/mewtwo-1-1-001?allowEmpty=true
+```
+
+## Endpoints
 
 ### `GET /api/pokemon-stats`
+
 Returns published Mezatag entries only.
 
 ### `GET /api/pokemon-stats?includeEmpty=true`
-Returns the full catalog, including entries whose stats are incomplete or still missing.
+
+Returns the full catalog, including entries whose stats are incomplete or missing.
 
 ### `GET /api/pokemon-stats?groupByVersion=true`
-Groups the published entries under each version identifier.
+
+Returns published entries grouped by `versionIdentifier`.
 
 ### `GET /api/pokemon-stats/:slug`
-Returns a single published record by slug.
+
+Returns one published entry by slug.
 
 ### `GET /api/pokemon-stats/:slug?allowEmpty=true`
-Returns a single record even when its stats are incomplete or missing.
+
+Returns one entry by slug even if its stats are not fully curated yet.
 
 ## Query Parameters
 
-- `includeEmpty=true`
-  Includes entries whose stats are incomplete or still missing.
-- `groupByVersion=true`
-  Groups the list response by version identifier.
-- `allowEmpty=true`
-  Allows detail responses for entries that are not fully curated yet.
-- `number=<tag-number>`
-  Looks up one entry by Mezatag number from the list endpoint.
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `includeEmpty` | boolean | Includes incomplete or missing entries in list responses |
+| `groupByVersion` | boolean | Groups list responses by version |
+| `allowEmpty` | boolean | Allows detail responses for incomplete or missing entries |
+| `number` | string | Looks up a single entry by Mezatag number from the list route |
 
-## Example Response
+## Response Format
+
+### List response
 
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "slug": "mewtwo-1-1-001",
-      "number": "1-1-001",
-      "tagId": "1-1-001",
-      "versionIdentifier": "stardust_v1",
-      "versionLabel": "Stardust v1",
-      "pokemonId": 150,
-      "name": "Mewtwo",
-      "form": "Normal",
-      "type": "Psychic",
-      "star": 6,
-      "attack": "Psystrike",
-      "attackType": "Psychic",
-      "pokeEne": 158,
-      "pe": 158,
-      "marks": ["Legend"],
-      "rarity": "6 star",
-      "traits": [],
-      "move": {
-        "name": "Psystrike",
-        "type": "Psychic",
-        "category": "Special"
-      },
-      "stats": {
-        "hp": 172,
-        "attack": 119,
-        "defense": 98,
-        "specialAttack": 165,
-        "specialDefense": 98,
-        "speed": 140
-      },
-      "statsStatus": "ready",
-      "isPlaceholder": false,
-      "source": "pokeapi-base-stats",
-      "lastUpdated": "2026-04-16",
-      "notes": null,
-      "links": {
-        "self": "/api/pokemon-stats/mewtwo-1-1-001"
-      }
-    }
-  ],
-  "meta": {
-    "endpoint": "/api/pokemon-stats",
-    "includeEmpty": false,
-    "total": 280,
-    "ready": 280,
-    "incomplete": 0,
-    "missing": 0
+  "data": [],
+  "meta": {}
+}
+```
+
+### Detail response
+
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
+
+### Error response
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "POKEMON_NOT_FOUND",
+    "message": "No Mezatag Pokemon entry matches \"example-slug\"."
   }
 }
 ```
 
-## Usage Notes
+## Example Entry
 
-The main resolver lives in `src/lib/mezatagStatsApi.js`.
+```json
+{
+  "slug": "mewtwo-1-1-001",
+  "number": "1-1-001",
+  "tagId": "1-1-001",
+  "versionIdentifier": "stardust_v1",
+  "versionLabel": "Stardust v1",
+  "pokemonId": 150,
+  "name": "Mewtwo",
+  "form": "Normal",
+  "type": "Psychic",
+  "star": 6,
+  "attack": "Psystrike",
+  "attackType": "Psychic",
+  "pokeEne": 158,
+  "pe": 158,
+  "marks": ["Legend"],
+  "rarity": "6 star",
+  "traits": [],
+  "move": {
+    "name": "Psystrike",
+    "type": "Psychic",
+    "category": "Special"
+  },
+  "stats": {
+    "hp": 172,
+    "attack": 119,
+    "defense": 98,
+    "specialAttack": 165,
+    "specialDefense": 98,
+    "speed": 140
+  },
+  "statsStatus": "ready",
+  "isPlaceholder": false,
+  "source": "pokeapi-base-stats",
+  "lastUpdated": "2026-04-16",
+  "notes": null,
+  "links": {
+    "self": "/api/pokemon-stats/mewtwo-1-1-001"
+  }
+}
+```
 
-The route files call that resolver and return JSON responses with:
+## Entry Status
 
-- `success`
-- `data`
-- `meta` for list responses
-- `error` for failed requests
+Entries can include a `statsStatus` field:
 
-Records that are not fully curated yet expose a `statsStatus` field:
+| Value | Meaning |
+| --- | --- |
+| `ready` | Fully curated and published |
+| `incomplete` | Partially filled in |
+| `missing` | Present in the roster but not yet curated |
 
-- `ready`
-- `incomplete`
-- `missing`
+## Repository Contents
 
-## Repo Check
+| Path | Purpose |
+| --- | --- |
+| `api/pokemon-stats/index.js` | List route |
+| `api/pokemon-stats/[slug].js` | Detail route |
+| `src/data/mezastarRosters.js` | Base Mezatag roster data |
+| `src/data/mezatagPokemonStats.js` | Curated stat records and overrides |
+| `src/lib/mezatagStatsApi.js` | Request resolver and response builder |
+| `src/lib/mezatagStatsFormatter.js` | Data normalization and formatting helpers |
 
-To sanity-check the route and library files:
+## Local Check
 
 ```bash
 npm run check
 ```
-
-## Data Files
-
-- `src/data/mezastarRosters.js`
-  Base roster data by Mezatag version.
-- `src/data/mezatagPokemonStats.js`
-  Published stat records and manual detail overrides.
-- `src/lib/mezatagStatsFormatter.js`
-  Utilities for sorting, normalizing, serializing, and importing stat records.
 
 ## License
 
