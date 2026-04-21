@@ -1,0 +1,18 @@
+{
+  "name": "mezatag-stats-api",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "description": "Public read-only API for Mezatag Pokemon details and Mezatag set metadata.",
+  "scripts": {
+    "check": "node --check api/pokemon-stats/index.js && node --check api/pokemon-stats/[slug].js && node --check src/lib/mezatagStatsApi.js && node --check src/lib/mezatagStatsFormatter.js"
+  },
+  "keywords": [
+    "mezastar",
+    "mezatag",
+    "pokemon",
+    "api",
+    "vercel"
+  ],
+  "license": "MIT"
+}
