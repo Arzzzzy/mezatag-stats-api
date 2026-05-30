@@ -2688,7 +2688,7 @@ export const MEZATAG_POKEMON_STATS = [
     star: 6,
     attack: "Blizzard",
     attackType: "Ice",
-    pokeEne: 0,
+    pokeEne: 158,
     marks: ["Legend"],
     rarity: "6 star",
     traits: [],
