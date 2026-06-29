@@ -11,6 +11,8 @@ https://api.mezastarhub.site/api/pokemon-stats
 ## Overview
 
 This API exposes public Mezatag roster and stat data in a simple JSON format.
+It is built by merging the roster catalog with curated stat records, then labeling
+each entry with a publication status.
 
 - Read-only access
 - No API key required
@@ -18,19 +20,33 @@ This API exposes public Mezatag roster and stat data in a simple JSON format.
 - Detail lookup by slug
 - Completion tracking with `statsStatus`
 
+## How The Data Is Curated
+
+The API resolves entries from two local sources:
+
+- `src/data/mezastarRosters.js` defines the catalog of supported tags
+- `src/data/mezatagPokemonStats.js` provides the curated stats, labels, and overrides
+
+At request time, the resolver merges the roster entry with the matching curated record.
+If a roster entry has no curated record yet, it is returned as `missing`.
+If it has partial stat data, it is returned as `incomplete`.
+If the stat record is complete, it is returned as `ready`.
+
+The current curated source label used in published records is `mezastarhub.site/api`.
+
 ## Coverage
 
 Current curation status by version:
 
 | Version | Status |
 | --- | --- |
-| `stardust_v1` | Curated |
-| `stardust_v2` | Curated |
-| `Special` | Curated |
-| `stardust_v3` | Not fully curated yet |
-| `stardust_v4` | Not fully curated yet |
-| `galaxy_v1` | Not fully curated yet |
-
+| `stardust_v1` | Curated and published |
+| `stardust_v2` | Curated and published |
+| `Special` | Rostered, stats pending |
+| `stardust_v3` | Curated and published |
+| `stardust_v4` | Curated and published |
+| `galaxy_v1` | Curated and published |
+| `galaxy_v2` | Rostered, stats pending |
 If you need the full catalog, including unfinished entries, use `includeEmpty=true`.
 
 ## Quick Start
@@ -69,7 +85,7 @@ GET https://api.mezastarhub.site/api/pokemon-stats/mewtwo-1-1-001?allowEmpty=tru
 
 ### `GET /api/pokemon-stats`
 
-Returns published Mezatag entries only.
+Returns published Mezatag entries only. Published means `statsStatus === "ready"`.
 
 ### `GET /api/pokemon-stats?includeEmpty=true`
 
@@ -137,11 +153,12 @@ Returns one entry by slug even if its stats are not fully curated yet.
   "number": "1-1-001",
   "tagId": "1-1-001",
   "versionIdentifier": "stardust_v1",
-  "versionLabel": "Stardust v1",
+  "versionLabel": "STARDUST Version 1",
   "pokemonId": 150,
   "name": "Mewtwo",
   "form": "Normal",
   "type": "Psychic",
+  "types": ["Psychic"],
   "star": 6,
   "attack": "Psystrike",
   "attackType": "Psychic",
@@ -150,11 +167,13 @@ Returns one entry by slug even if its stats are not fully curated yet.
   "marks": ["Legend"],
   "rarity": "6 star",
   "traits": [],
+  "item": null,
   "move": {
     "name": "Psystrike",
     "type": "Psychic",
     "category": "Special"
   },
+  "secondMove": null,
   "stats": {
     "hp": 172,
     "attack": 119,
@@ -165,8 +184,8 @@ Returns one entry by slug even if its stats are not fully curated yet.
   },
   "statsStatus": "ready",
   "isPlaceholder": false,
-  "source": "pokeapi-base-stats",
-  "lastUpdated": "2026-04-16",
+  "source": "mezastarhub.site/api",
+  "lastUpdated": null,
   "notes": null,
   "links": {
     "self": "/api/pokemon-stats/mewtwo-1-1-001"
@@ -183,6 +202,10 @@ Entries can include a `statsStatus` field:
 | `ready` | Fully curated and published |
 | `incomplete` | Partially filled in |
 | `missing` | Present in the roster but not yet curated |
+
+The response also carries version context through `versionIdentifier` and
+`versionLabel`, so clients can group records consistently even when a version
+has roster entries with no curated stats yet.
 
 ## Repository Contents
 

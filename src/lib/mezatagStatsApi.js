@@ -91,13 +91,27 @@ const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
 };
 
-const MANUAL_STATS_BY_NUMBER = new Map(
-  MEZATAG_POKEMON_STATS.map((record) => [record.number, record]),
+const MANUAL_STATS_BY_NUMBER = MEZATAG_POKEMON_STATS.reduce((accumulator, record) => {
+  if (!accumulator.has(record.number)) {
+    accumulator.set(record.number, []);
+  }
+
+  accumulator.get(record.number).push(record);
+  return accumulator;
+}, new Map());
+
+const MANUAL_STATS_BY_VERSION_AND_NUMBER = new Map(
+  MEZATAG_POKEMON_STATS.map((record) => [`${record.versionIdentifier}:${record.number}`, record]),
 );
 
 const formatVersionLabel = (rosterKey) => {
   if (rosterKey === 'Special') {
     return 'Special';
+  }
+
+  const mezastarVersionMatch = String(rosterKey).match(/^(stardust|galaxy)_v(\d+)$/i);
+  if (mezastarVersionMatch) {
+    return `${mezastarVersionMatch[1].toUpperCase()} Version ${mezastarVersionMatch[2]}`;
   }
 
   return String(rosterKey)
@@ -153,6 +167,11 @@ const normalizeStringArray = (value) => {
   const normalized = normalizeTextValue(value);
   return normalized ? [normalized] : [];
 };
+
+const findManualRecord = (rosterKey, number) =>
+  MANUAL_STATS_BY_VERSION_AND_NUMBER.get(`${rosterKey}:${number}`) ??
+  MANUAL_STATS_BY_NUMBER.get(number)?.[0] ??
+  null;
 
 const deriveTraitsFromForm = (form) => {
   const normalizedForm = normalizeTextValue(form);
@@ -239,7 +258,7 @@ const buildCatalog = () => {
         continue;
       }
 
-      const manualRecord = MANUAL_STATS_BY_NUMBER.get(number);
+      const manualRecord = findManualRecord(rosterKey, number);
       const versionIdentifier =
         normalizeTextValue(manualRecord?.versionIdentifier) ?? rosterKey;
       const versionLabel =
@@ -259,6 +278,7 @@ const buildCatalog = () => {
           : normalizeStringArray(manualRecord.traits);
       const normalizedMarks = deriveMarks(manualRecord?.marks, { star });
       const normalizedMove = normalizeMove(manualRecord?.move, { attack, attackType });
+      const normalizedSecondMove = normalizeMove(manualRecord?.secondMove, {});
       const pokeEne = normalizeStatValue(manualRecord?.pokeEne);
       const slug = normalizeSlugPart(`${name}-${number}`);
       const statsStatus = !manualRecord
@@ -271,6 +291,8 @@ const buildCatalog = () => {
         slug,
         number,
         tagId: normalizeTextValue(manualRecord?.tagId) ?? number,
+        jpId: normalizeTextValue(manualRecord?.jpId),
+        serial: normalizeNullableNumber(manualRecord?.serial),
         roster: rosterKey,
         versionIdentifier,
         versionLabel,
@@ -278,6 +300,7 @@ const buildCatalog = () => {
         name,
         form,
         type,
+        types: normalizeStringArray(manualRecord?.types ?? type),
         star,
         attack,
         attackType,
@@ -286,11 +309,13 @@ const buildCatalog = () => {
         marks: normalizedMarks,
         rarity: normalizeTextValue(manualRecord?.rarity) ?? (star ? `${star} star` : null),
         traits: normalizedTraits,
+        item: normalizeTextValue(manualRecord?.item),
         move: normalizedMove,
+        secondMove: normalizedSecondMove,
         stats: statsStatus === 'missing' ? null : normalizedStats,
         statsStatus,
         isPlaceholder: Boolean(manualRecord?.isPlaceholder),
-        source: manualRecord?.source ?? 'roster-derived',
+        source: manualRecord?.source ?? null,
         lastUpdated: manualRecord?.lastUpdated ?? null,
         notes: manualRecord?.notes ?? null,
         links: {

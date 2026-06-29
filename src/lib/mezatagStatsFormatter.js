@@ -1,12 +1,15 @@
 const ENTRY_FIELD_ORDER = [
   'number',
   'tagId',
+  'jpId',
+  'serial',
   'versionIdentifier',
   'versionLabel',
   'pokemonId',
   'name',
   'form',
   'type',
+  'types',
   'star',
   'attack',
   'attackType',
@@ -14,7 +17,9 @@ const ENTRY_FIELD_ORDER = [
   'marks',
   'rarity',
   'traits',
+  'item',
   'move',
+  'secondMove',
   'source',
   'isPlaceholder',
   'lastUpdated',
@@ -125,17 +130,35 @@ const formatValue = (value, level) => {
 
 export const normalizeEditableMezatagEntry = (entry) => {
   const moveInput = entry?.move ?? null;
+  const secondMoveInput = entry?.secondMove ?? null;
   const statsInput = entry?.stats ?? null;
+  const normalizedType = normalizeString(entry?.type);
+  const normalizedTypes =
+    entry?.types === undefined
+      ? normalizeStringArray(normalizedType)
+      : normalizeStringArray(entry?.types);
+
+  const normalizeMoveInput = (input) =>
+    input
+      ? {
+          name: normalizeString(input.name),
+          type: normalizeString(input.type),
+          category: normalizeString(input.category),
+        }
+      : null;
 
   return {
     number: normalizeString(entry?.number),
     tagId: normalizeString(entry?.tagId) ?? normalizeString(entry?.number),
+    jpId: normalizeString(entry?.jpId),
+    serial: normalizeNumber(entry?.serial),
     versionIdentifier: normalizeString(entry?.versionIdentifier),
     versionLabel: normalizeString(entry?.versionLabel),
     pokemonId: normalizeNumber(entry?.pokemonId),
     name: normalizeString(entry?.name),
     form: normalizeString(entry?.form) ?? 'Normal',
-    type: normalizeString(entry?.type),
+    type: normalizedType,
+    types: normalizedTypes,
     star: normalizeNumber(entry?.star),
     attack: normalizeString(entry?.attack),
     attackType: normalizeString(entry?.attackType),
@@ -143,13 +166,9 @@ export const normalizeEditableMezatagEntry = (entry) => {
     marks: normalizeStringArray(entry?.marks),
     rarity: normalizeString(entry?.rarity),
     traits: normalizeStringArray(entry?.traits),
-    move: moveInput
-      ? {
-          name: normalizeString(moveInput.name),
-          type: normalizeString(moveInput.type),
-          category: normalizeString(moveInput.category),
-        }
-      : null,
+    item: normalizeString(entry?.item),
+    move: normalizeMoveInput(moveInput),
+    secondMove: normalizeMoveInput(secondMoveInput),
     source: normalizeString(entry?.source) ?? 'pokeapi-base-stats',
     isPlaceholder: Boolean(entry?.isPlaceholder),
     lastUpdated: normalizeString(entry?.lastUpdated),
@@ -205,6 +224,9 @@ export const serializeMezatagStats = (entries) => {
           move: entry.move
             ? Object.fromEntries(MOVE_FIELD_ORDER.map((key) => [key, entry.move[key] ?? null]))
             : null,
+          secondMove: entry.secondMove
+            ? Object.fromEntries(MOVE_FIELD_ORDER.map((key) => [key, entry.secondMove[key] ?? null]))
+            : null,
           stats: Object.fromEntries(STATS_FIELD_ORDER.map((key) => [key, entry.stats[key] ?? null])),
         },
         0,
@@ -214,7 +236,7 @@ export const serializeMezatagStats = (entries) => {
     .map((chunk) => `  ${chunk.replace(/\n/g, '\n  ')}`)
     .join(',\n');
 
-  return `export const MEZATAG_POKEMON_STATS = [\n${body}\n];\n`;
+  return `export const MEZATAG_POKEMON_STATS = [\n${body}\n];\n\nexport const MEZATAG_POKEMON_STATS_BY_NUMBER = MEZATAG_POKEMON_STATS.reduce((acc, item) => {\n  if (!acc[item.number]) acc[item.number] = [];\n  acc[item.number].push(item);\n  return acc;\n}, {});\n\nexport const MEZATAG_POKEMON_STATS_BY_VERSION_AND_NUMBER = MEZATAG_POKEMON_STATS.reduce((acc, item) => {\n  acc[\`${'${item.versionIdentifier}:${item.number}'}\`] = item;\n  return acc;\n}, {});\n\nexport const MEZATAG_POKEMON_STATS_BY_VERSION_AND_NAME = MEZATAG_POKEMON_STATS.reduce((acc, item) => {\n  acc[\`${'${item.versionIdentifier}:${item.name.toLowerCase()}'}\`] = item;\n  return acc;\n}, {});\n\nexport const getMezatagPokemonStats = ({ versionIdentifier, number, name }) => {\n  if (!versionIdentifier) return null;\n  const numberMatch = number ? MEZATAG_POKEMON_STATS_BY_VERSION_AND_NUMBER[\`${'${versionIdentifier}:${number}'}\`] : null;\n  if (numberMatch) return numberMatch;\n  return name ? MEZATAG_POKEMON_STATS_BY_VERSION_AND_NAME[\`${'${versionIdentifier}:${name.toLowerCase()}'}\`] || null : null;\n};\n`;
 };
 
 export const parseImportedMezatagStats = (rawSource) => {
@@ -234,6 +256,7 @@ export const parseImportedMezatagStats = (rawSource) => {
   } catch {
     const cleanedSource = source
       .replace(/^export\s+const\s+MEZATAG_POKEMON_STATS\s*=\s*/m, '')
+      .replace(/;\s*export\s+const[\s\S]*$/m, '')
       .replace(/;\s*$/, '');
 
     try {
